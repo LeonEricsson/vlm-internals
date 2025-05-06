@@ -5,7 +5,16 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "accelerate>=1.6.0",
+    "easydict>=1.13",
     "ipykernel>=6.29.5",
+    "pillow>=11.2.1",
+    "qwen-vl-utils[decord]>=0.0.11",
     "torch>=2.7.0",
+    "torchvision>=0.22.0",
     "transformers>=4.51.3",
+    "flash-attn"
 ]
+
+[tool.uv]
+no-build-isolation-package = ["flash-attn"]
