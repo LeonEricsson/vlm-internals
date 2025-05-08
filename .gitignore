@@ -175,3 +175,5 @@ cython_debug/
 
 data/train2017
 data/val2017
+
+extractions/
