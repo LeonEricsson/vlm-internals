@@ -35,9 +35,6 @@ class VSR(Dataset):
         image_perturb_fn: not used; for compatibility.
         download: Whether to download the dataset if it does not exist.
         """
-        # shuffler = TextShuffler()
-        # perturb_functions = [shuffler.shuffle_nouns_and_adj, shuffler.shuffle_allbut_nouns_and_adj,
-        #  shuffler.shuffle_within_trigrams, shuffler.shuffle_trigrams]
 
         self.root_dir = root_dir
         if not os.path.exists(root_dir):

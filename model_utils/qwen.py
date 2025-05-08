@@ -3,20 +3,33 @@ from transformers import AutoProcessor, Qwen2_5_VLForConditionalGeneration
 from qwen_vl_utils import process_vision_info
 from typing import List, Dict
 
+MIN_PIXELS = 250 * 28 * 28
+MAX_PIXELS = 256 * 28 * 28
+MAX_SEQ_LEN = 300
+
 
 class Qwen2_5_VLWrapper:
     """
-    Wrapper for Qwen2.5 VL that extracts self-attention, activations, and logits.
+    Wrapper around the Qwen2.5 vision-language model for inference and feature extraction.
+
+    Args:
+        model_name (str): Identifier of the pretrained model to load.
+        device (str): Device specifier for torch (e.g., 'cuda' or 'cpu').
+        eval (bool): If True, use flash attention. Can not be True if we want to extract
+                    attention weights + hidden states.
+
+    Attributes:
+        processor: AutoProcessor handling tokenization and vision preprocessing.
+        model: Qwen2.5 VL model instance loaded onto the specified device.
     """
 
     def __init__(self, model_name: str, device: str = "cuda", eval: bool = False):
         self.device = torch.device(device if torch.cuda.is_available() else "cpu")
-        min_pixels = 128 * 28 * 28  # 128 tokens min
-        max_pixels = 512 * 28 * 28  # 256 tokens max
+
         self.processor = AutoProcessor.from_pretrained(
             model_name,
-            min_pixels=min_pixels,
-            max_pixels=max_pixels,
+            min_pixels=MIN_PIXELS,
+            max_pixels=MAX_PIXELS,
             padding_side="left",
         )
         self.model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
@@ -27,7 +40,20 @@ class Qwen2_5_VLWrapper:
         self.model.eval()
 
     def forward_and_capture(self, batch: List[dict]):
-        # inputs = self._prepare_inputs(batch)
+        """
+        Run a forward pass to capture attention maps, hidden states, and output logits.
+
+        Args:
+            batch (Dict[str, torch.Tensor]):
+                Contains model inputs such as 'input_ids', 'pixel_values',
+                'attention_mask', etc., all as PyTorch tensors on correct device.
+
+        Returns:
+            Dict[str, tuple]:
+                'attns': tuple of attention tensors per layer (each [B, heads, seq, seq]).
+                'acts': tuple of hidden-state tensors per layer (each [B, seq, hidden_dim]).
+                'logits': output logits tensor of shape [B, seq, vocab_size].
+        """
         outputs = self.model(
             **batch,
             output_hidden_states=True,
@@ -42,6 +68,10 @@ class Qwen2_5_VLWrapper:
 
 
 class Qwen2_5_DataCollator:
+    """
+    Data collator that converts raw visual reasoning samples into model-ready batches.
+    """
+
     def __init__(
         self,
         wrapper: Qwen2_5_VLWrapper,
@@ -57,12 +87,20 @@ class Qwen2_5_DataCollator:
 
     def __call__(self, samples: List[Dict]) -> Dict:
         """
-        samples: list of dicts, each with 'image_options', 'caption_options', etc.
-        Returns: a batched dict ready for model(**batch)
+        Build batched inputs from a list of raw samples.
+
+        Args:
+            samples (List[Dict]):
+                Each dict must have 'image_options', 'caption_options', and 'labels'.
+
+        Returns:
+            Dict[str, torch.Tensor]:
+                - Model input tensors ('input_ids', 'pixel_values', etc.)
+                - 'image_positions' and 'text_positions': BoolTensors [B, seq] masks
+                - 'labels': LongTensor [B]
         """
         batch_messages = []
 
-        # 1) Build messages per sample
         for sample in samples:
             content = [
                 {"type": "image", "image": sample["image_options"][0]},
@@ -74,7 +112,6 @@ class Qwen2_5_DataCollator:
             ]
             batch_messages.append(msgs)
 
-        # 2) Apply chat template in batch
         text_inputs = [
             self.processor.apply_chat_template(
                 msgs, tokenize=False, add_generation_prompt=True
@@ -87,11 +124,12 @@ class Qwen2_5_DataCollator:
             text=text_inputs,
             images=image_inputs,
             videos=video_inputs,
-            padding=True,
+            padding="max_length",
+            max_length=MAX_SEQ_LEN,
             return_tensors="pt",
         )
 
-        img_pos = batch["input_ids"] == self.img_token_id
+        img_pos = batch["input_ids"] == self.image_token_id
         txt_pos = ~img_pos
 
         batch["image_positions"] = img_pos
@@ -100,4 +138,6 @@ class Qwen2_5_DataCollator:
         batch["labels"] = torch.tensor(
             [s["labels"][0] for s in samples], dtype=torch.long
         )
+
+        batch["attention_mask"] = batch["attention_mask"].to(torch.int8)
         return batch

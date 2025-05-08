@@ -55,8 +55,10 @@ def main():
     # 3) loop
     for batch in tqdm(loader, desc="Evaluating"):
         labels = batch.pop("labels").to(device)  # [B]
+        labels = batch.pop("image_positions")
+        labels = batch.pop("text_positions")
         batch = {k: v.to(device) for k, v in batch.items()}
-
+        print(batch["input_ids"].shape)
         # generate one token per sample
         with torch.no_grad():
             gen_ids = model.generate(
