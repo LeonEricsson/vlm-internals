@@ -174,3 +174,4 @@ cython_debug/
 .pypirc
 
 data/train2017
+data/val2017
