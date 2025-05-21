@@ -68,12 +68,11 @@ def flush_storage(storage, output_dir, chunk_idx):
         output_dir (str): Directory to write the NPZ.
         chunk_idx (int): Index for naming the chunk file.
     """
-    attns = np.concatenate(storage["attns"], axis=1)
-    acts = np.concatenate(storage["acts"], axis=1)
+    attns = np.concatenate(storage["attns"], axis=0)
+    acts = np.concatenate(storage["acts"], axis=0)
     mask = np.concatenate(storage["mask"], axis=0)
     correct = np.array(storage["correct"], dtype=bool)
     image_positions = np.concatenate(storage["image_positions"], axis=0)
-    text_positions = np.concatenate(storage["text_positions"], axis=0)
 
     out_path = os.path.join(output_dir, f"all_tensors_{chunk_idx}.npz")
     np.savez_compressed(
@@ -82,7 +81,6 @@ def flush_storage(storage, output_dir, chunk_idx):
         acts=acts,
         correct=correct,
         image_positions=image_positions,
-        text_positions=text_positions,
         mask=mask,
     )
     print(f"Saved chunk {chunk_idx} ({correct.size} samples) to {out_path}")
@@ -157,12 +155,11 @@ def main():
         return
 
     storage = {
-        "attns": [],
-        "acts": [],
-        "mask": [],
-        "correct": [],
-        "image_positions": [],
-        "text_positions": [],
+        "attns": [],  # [Sample, Layer, Head, Seq]
+        "acts": [],  # [Sample, Layer + 1, Hidden Dim]
+        "mask": [],  # [Sample, Seq]
+        "correct": [],  # [Sample]
+        "image_positions": [],  # [Sample, Seq]
     }
     sample_count = 0
     chunk_idx = 0
@@ -171,7 +168,6 @@ def main():
     for idx, batch in enumerate(tqdm(loader, desc="Extracting", unit="batch")):
         # Extract diagnostic masks and labels
         img_pos = batch.pop("image_positions")
-        txt_pos = batch.pop("text_positions")
         labels = batch.pop("labels")
         # Move inputs to device
         batch = {k: v.to(args.device) for k, v in batch.items()}
@@ -184,23 +180,22 @@ def main():
             [a.detach().cpu().to(torch.float16).numpy() for a in out["attns"]],
             axis=0,
         )
-        attn_np = attn_np[:, :, :, -1, :]
+        attn_np = attn_np[:, :, :, -1, :]  # attention from last token to all positions
         act_np = np.stack(
             [h.detach().cpu().to(torch.float16).numpy() for h in out["acts"]],
             axis=0,
         )
-        act_np = act_np[:, :, -1, :]
+        act_np = act_np[:, :, -1, :]  # activations at last token
         attn_mask = batch["attention_mask"].detach().cpu().numpy()
 
-        storage["attns"].append(attn_np)
-        storage["acts"].append(act_np)
+        storage["attn_weights"].append(np.swapaxes(attn_np, 0, 1))
+        storage["acts"].append(np.swapaxes(act_np, 0, 1))
         storage["mask"].append(attn_mask)
         storage["correct"].extend(correct)
         storage["image_positions"].append(img_pos.cpu().numpy())
-        storage["text_positions"].append(txt_pos.cpu().numpy())
 
         sample_count += len(correct)
-        # Flush if threshold reached
+
         if args.save_n_samples and sample_count >= args.save_n_samples:
             flush_storage(storage, out_base, chunk_idx)
             chunk_idx += 1

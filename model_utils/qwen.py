@@ -96,7 +96,7 @@ class Qwen2_5_DataCollator:
         Returns:
             Dict[str, torch.Tensor]:
                 - Model input tensors ('input_ids', 'pixel_values', etc.)
-                - 'image_positions' and 'text_positions': BoolTensors [B, seq] masks
+                - 'image_positions': BoolTensors [B, seq] masks
                 - 'labels': LongTensor [B]
         """
         batch_messages = []
@@ -130,10 +130,8 @@ class Qwen2_5_DataCollator:
         )
 
         img_pos = batch["input_ids"] == self.image_token_id
-        txt_pos = ~img_pos
 
         batch["image_positions"] = img_pos
-        batch["text_positions"] = txt_pos
 
         batch["labels"] = torch.tensor(
             [s["labels"][0] for s in samples], dtype=torch.long
