@@ -34,11 +34,7 @@ def plot_attention_ratios(
 
 
 def plot_attention_map(
-    attention_maps: dict,
-    num_layers: int,
-    image: Image.Image,
-    sample_idx: int = -1,
-    dataset_name: str = "",
+    attention_maps: dict, num_layers: int, image: Image.Image, sample: dict
 ):
     """Plots the interactive attention map visualization."""
     orig_h, orig_w = image.size[::-1]
@@ -164,10 +160,7 @@ def plot_attention_map(
     fig.canvas.mpl_connect("key_press_event", on_key_press)
 
     suptitle_text = "Attention Visualization"
-    if dataset_name and sample_idx != -1:
-        suptitle_text += f": Sample {sample_idx} ({dataset_name})"
-    elif sample_idx != -1:
-        suptitle_text += f": Sample {sample_idx}"
+    suptitle_text += f": Sample {sample_idx}"
     fig.suptitle(suptitle_text, fontsize=16, y=0.97)
 
     plt.show()

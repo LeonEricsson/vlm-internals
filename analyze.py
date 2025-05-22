@@ -1,16 +1,12 @@
 import os
 import argparse
 from analysis.utils import load_extractions, calculate_patch_information
-from analysis.attention import (
-    compute_attention_ratios,
-    plot_attention_ratios,
-    precompute_attention_map,
-)
-from analysis.visualization import plot_attention_map
+from analysis.attention import compute_attention_ratios, precompute_attention_map
+from analysis.visualization import plot_attention_map, plot_attention_ratios
 from data import get_dataset
 
 
-def visualize_attention_map(
+def visual_attention_map_analysis(
     input_dir: str,
     sample_idx: int,
     dataset_name: str,
@@ -57,9 +53,7 @@ def visualize_attention_map(
         attn_weights_sample, image_token_mask_sample, patch_boxes, image
     )
 
-    plot_attention_map(
-        attention_maps, num_actual_layers, image, sample_idx, dataset_name
-    )
+    plot_attention_map(attention_maps, num_actual_layers, image, sample_idx)
 
 
 def analyze_attention_split(
@@ -116,9 +110,9 @@ def main():
         help="Dataset name as understood by get_dataset().",
     )
 
-    # args = parser.parse_args()
-    # visualize_sample_attention(args.input_dir, args.sample_idx, args.dataset)
-    visualize_attention_map("extractions/Qwen_Qwen2.5-VL-3B-Instruct_VSR/", 1, "VSR")
+    args = parser.parse_args()
+    visual_attention_map_analysis(args.input_dir, args.sample_idx, args.dataset)
+
     print("Analysis complete!")
 
 
