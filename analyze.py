@@ -1,3 +1,11 @@
+"""Analysis utilities for extracted model tensors.
+
+This script is intended to be run after :mod:`extract.py`. It loads the
+``.npz`` files produced during extraction and provides a few common analyses,
+such as visualizing attention maps or summarizing how much attention is paid to
+image tokens versus text tokens.
+"""
+
 import os
 import argparse
 from analysis.utils import load_extractions, calculate_patch_information
@@ -11,15 +19,16 @@ def visual_attention_map_analysis(
     sample_idx: int,
     dataset_name: str,
 ) -> None:
-    """
-    Visualize attention maps for a single sample across model layers.
-    Creates an interactive plot where you can scroll through layers to see how
-    attention to different image patches changes.
+    """Interactively browse attention maps for a given sample.
 
-    Args:
-        input_dir: Directory containing the NPZ extraction files
-        sample_idx: Index of the sample to visualize
-        dataset_name: Name of the dataset to use
+    Parameters
+    ----------
+    input_dir : str
+        Directory containing ``.npz`` files produced by :mod:`extract.py`.
+    sample_idx : int
+        Which sample from the dataset to load.
+    dataset_name : str
+        Dataset identifier understood by :func:`data.get_dataset`.
     """
     dataset = get_dataset(dataset_name)  # Uses dummy if not overridden
 
@@ -59,10 +68,13 @@ def visual_attention_map_analysis(
 def analyze_attention_split(
     input_dir: str,
 ) -> None:
-    """
-    Analyze how attention is distributed between image and text tokens across model layers.
-    This analysis looks at the amount of attention placed on image tokens versus text tokens
-    throughout the model's layers.
+    """Compute average attention on image versus text tokens.
+
+    Parameters
+    ----------
+    input_dir : str
+        Directory containing ``.npz`` files with ``attn_weights`` and
+        ``image_token_mask`` arrays.
     """
 
     print(f"Loading extractions from {input_dir}...")
@@ -82,6 +94,7 @@ def analyze_attention_split(
 
 
 def main():
+    """Entry point for running analyses from the command line."""
     parser = argparse.ArgumentParser(
         description="Analyze attention patterns in VLM extractions"
     )

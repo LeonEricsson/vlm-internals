@@ -1,3 +1,5 @@
+"""Plotting helpers for attention visualisation."""
+
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider
@@ -10,9 +12,16 @@ def plot_attention_ratios(
     text_attention: np.ndarray,
     title: str = "Attention Distribution Across Layers",
 ) -> None:
-    """
-    Plot the average attention ratios across layers.
-    Shows the figure instead of saving it.
+    """Plot average attention on image and text tokens per layer.
+
+    Parameters
+    ----------
+    image_attention : np.ndarray
+        Array ``[L, S]`` of attention mass on image tokens.
+    text_attention : np.ndarray
+        Array ``[L, S]`` of attention mass on text tokens.
+    title : str, optional
+        Title for the resulting plot.
     """
     mean_img_attn = np.mean(image_attention, axis=1)
     mean_txt_attn = np.mean(text_attention, axis=1)
@@ -36,7 +45,22 @@ def plot_attention_ratios(
 def plot_attention_map(
     attention_maps: dict, num_layers: int, image: Image.Image, sample: dict
 ):
-    """Plots the interactive attention map visualization."""
+    """Display an interactive heatmap of attention over the input image.
+
+    Parameters
+    ----------
+    attention_maps : dict[int, np.ndarray]
+        Precomputed per-layer attention maps from
+        :func:`analysis.attention.precompute_attention_map`.
+    num_layers : int
+        Total number of layers in the model.
+    image : PIL.Image
+        Image that was fed into the model.
+    sample_idx : int, optional
+        Dataset index being visualized (for the window title).
+    dataset_name : str, optional
+        Name of the dataset for display purposes.
+    """
     orig_h, orig_w = image.size[::-1]
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(13, 7))

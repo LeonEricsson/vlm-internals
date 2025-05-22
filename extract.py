@@ -1,3 +1,10 @@
+"""Extraction pipeline for attention weights and activations.
+
+This script is the entry point for running a vision-language model over a
+dataset and saving intermediate tensors to disk. The saved ``.npz`` files can
+later be analysed using :mod:`analyze.py`.
+"""
+
 import os
 import argparse
 import time
@@ -12,11 +19,21 @@ from model_utils import get_wrapper_collator
 
 
 def debug_batch(loader, wrapper, device):
-    """
-    Run a single batch through the model in generate mode for debugging:
-    - Fetches the first batch from the loader
-    - Moves tensors to the device and generates a sample output
-    - Prints the generated text for manual inspection
+    """Run one batch and print the model's output for inspection.
+
+    This helper is useful when wiring up a new dataset or model. It grabs the
+    first batch from ``loader`` and runs a short generation step so you can
+    verify that the preprocessing pipeline, tokenization and model weights are
+    working as expected.
+
+    Parameters
+    ----------
+    loader : DataLoader
+        Loader yielding batches of preprocessed samples.
+    wrapper : Qwen2_5_VLWrapper
+        Model wrapper used to run inference.
+    device : torch.device or str
+        Device on which to run the model.
     """
     print("[DEBUG] Inspecting first batch via DataLoader + collator…\n")
     batch = next(iter(loader))
@@ -37,12 +54,25 @@ def debug_batch(loader, wrapper, device):
 
 
 def label_prediction(logits, labels, tokenizer):
-    """
-    Compute True/False predictions from model logits:
-    - Takes the last-token logits for each sample
-    - Picks the top-1 token ID
-    - Decodes to string and maps 'true'* to 1, 'false'* to 0, else None
-    - Returns a list of booleans indicating correctness vs. ground truth
+    """Convert model logits into boolean correctness predictions.
+
+    The function looks at the prediction for the final generated token of each
+    sample and interprets it as either ``True`` or ``False``. Any other token is
+    treated as ``None`` and subsequently marked incorrect.
+
+    Parameters
+    ----------
+    logits : torch.Tensor
+        Model output logits of shape ``[B, seq, vocab]``.
+    labels : torch.Tensor
+        Ground-truth labels (0 or 1) for each sample.
+    tokenizer : transformers.PreTrainedTokenizer
+        Tokenizer used to decode the predictions.
+
+    Returns
+    -------
+    List[bool]
+        Whether each prediction matches the true label.
     """
     last_logits = logits[:, -1, :]
     pred_ids = last_logits.argmax(dim=-1)
@@ -60,13 +90,17 @@ def label_prediction(logits, labels, tokenizer):
 
 
 def flush_storage(storage, output_dir, chunk_idx):
-    """
-    Concatenate stored batches and save them to a compressed NPZ file.
+    """Write accumulated tensors to disk.
 
-    Args:
-        storage (dict): Lists of per-batch arrays and masks.
-        output_dir (str): Directory to write the NPZ.
-        chunk_idx (int): Index for naming the chunk file.
+    Parameters
+    ----------
+    storage : dict
+        Lists of per-batch arrays and masks collected during extraction.
+    output_dir : str
+        Directory in which the ``.npz`` file will be created.
+    chunk_idx : int
+        Index used to differentiate chunk files when ``save_n_samples`` is
+        enabled.
     """
     attn_weights = np.concatenate(storage["attn_weights"], axis=0)
     acts = np.concatenate(storage["acts"], axis=0)
@@ -87,6 +121,8 @@ def flush_storage(storage, output_dir, chunk_idx):
 
 
 def parse_args():
+    """Parse command line arguments for extraction."""
+
     parser = argparse.ArgumentParser(
         description="Extract attention maps, activations, and logits from VLMs in chunks."
     )
@@ -132,6 +168,7 @@ def parse_args():
 
 
 def main():
+    """Run the extraction loop and save results to disk."""
     args = parse_args()
 
     model_safe = args.model.replace("/", "_")
