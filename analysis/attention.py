@@ -1,3 +1,5 @@
+"""Numerical utilities for analysing attention tensors."""
+
 import numpy as np
 from typing import Tuple
 
@@ -6,11 +8,22 @@ def compute_attention_ratios(
     attn_weights: np.ndarray,  # [Sample, Layer, Head, Seq]
     image_token_mask: np.ndarray,  # [Sample, Seq]
 ) -> Tuple[np.ndarray, np.ndarray]:
-    """
+    """Aggregate attention mass over image and text tokens.
+
+    Parameters
+    ----------
+    attn_weights : np.ndarray
+        Attention tensor of shape ``[S, L, H, Q]`` where ``S`` is sample
+        count and ``Q`` is the sequence length attended over.
+    image_token_mask : np.ndarray
+        Boolean mask ``[S, Q]`` indicating which tokens correspond to the image.
+
     Returns
     -------
-    - image_attention: [Layer, Sample] per-layer attention mass on image tokens
-    - text_attention: [Layer, Sample] per-layer attention mass on text tokens
+    Tuple[np.ndarray, np.ndarray]
+        Two arrays of shape ``[L, S]`` representing, for each layer and
+        sample, the fraction of attention directed at image tokens and at text
+        tokens respectively.
     """
     H = attn_weights.shape[2]  # number of heads
 
@@ -21,7 +34,24 @@ def compute_attention_ratios(
 
 
 def precompute_attention_map(attn_weights, image_token_mask, patch_boxes, image):
-    """Precomputes 2D attention maps for each layer."""
+    """Project per-token attention scores back onto the image grid.
+
+    Parameters
+    ----------
+    attn_weights : np.ndarray
+        Attention weights for a single sample of shape ``[L, H, Q]``.
+    image_token_mask : np.ndarray
+        Boolean mask ``[Q]`` indicating the positions of image tokens.
+    patch_boxes : List[Tuple[int, int, int, int]]
+        Bounding boxes for each image patch in original pixel coordinates.
+    image : PIL.Image
+        Source image used for computing output resolution.
+
+    Returns
+    -------
+    Dict[int, np.ndarray]
+        Mapping from layer index to ``[H, W]`` heatmaps normalised per layer.
+    """
     orig_h, orig_w = image.size[::-1]
     precomputed_maps = {}
     num_layers_in_weights = attn_weights.shape[0]
