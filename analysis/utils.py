@@ -25,3 +25,39 @@ def load_extractions(input_dir: str, keys: List[str]) -> Dict[str, np.ndarray]:
 
     # Concatenate along the sample dimension
     return {k: np.concatenate(v, axis=0) for k, v in all_data.items()}
+
+
+def image_patch_bb(
+    patch_size: int,
+    merge_size: int,
+    grid_thw: list[int],
+    orig_resolution: list[int],
+):
+    H_orig, W_orig = orig_resolution
+
+    # --- grab geometry ----------------------------
+    _, H_grid, W_grid = grid_thw
+
+    # grid after merging
+    H_tok, W_tok = H_grid // merge_size, W_grid // merge_size
+
+    H_real = H_grid * patch_size
+    W_real = W_grid * patch_size
+
+    sx = W_orig / W_real
+    sy = H_orig / H_real
+
+    # --- bounding-box for token k ------------------
+    def token_bbox(k: int):
+        r, c = divmod(k, W_tok)
+        r0_p = r * merge_size
+        c0_p = c * merge_size
+
+        x0 = int(round(c0_p * patch_size * sx))
+        y0 = int(round(r0_p * patch_size * sy))
+        x1 = int(round((c0_p + merge_size) * patch_size * sx))
+        y1 = int(round((r0_p + merge_size) * patch_size * sy))
+        return x0, y0, x1, y1
+
+    num_img_tokens = H_tok * W_tok
+    return [token_bbox(k) for k in range(num_img_tokens)]

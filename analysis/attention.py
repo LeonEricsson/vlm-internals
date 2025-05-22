@@ -5,7 +5,7 @@ from typing import Tuple
 
 def compute_attention_ratios(
     attn_weights: np.ndarray,  # [Sample, Layer, Head, Seq]
-    image_positions: np.ndarray,  # [Sample, Seq]
+    image_token_mask: np.ndarray,  # [Sample, Seq]
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
     Returns
@@ -16,8 +16,8 @@ def compute_attention_ratios(
     H = attn_weights.shape[2]  # number of heads
 
     # slhq,sq -> ls  (contract heads & seq, keep layer + sample)
-    image_attention = np.einsum("slhq,sq->ls", attn_weights, image_positions) / H
-    text_attention = np.einsum("slhq,sq->ls", attn_weights, ~image_positions) / H
+    image_attention = np.einsum("slhq,sq->ls", attn_weights, image_token_mask) / H
+    text_attention = np.einsum("slhq,sq->ls", attn_weights, ~image_token_mask) / H
     return image_attention, text_attention
 
 

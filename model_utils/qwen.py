@@ -131,7 +131,7 @@ class Qwen2_5_DataCollator:
 
         img_pos = batch["input_ids"] == self.image_token_id
 
-        batch["image_positions"] = img_pos
+        batch["image_token_mask"] = img_pos
 
         batch["labels"] = torch.tensor(
             [s["labels"][0] for s in samples], dtype=torch.long

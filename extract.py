@@ -68,19 +68,19 @@ def flush_storage(storage, output_dir, chunk_idx):
         output_dir (str): Directory to write the NPZ.
         chunk_idx (int): Index for naming the chunk file.
     """
-    attns = np.concatenate(storage["attns"], axis=0)
+    attn_weights = np.concatenate(storage["attn_weights"], axis=0)
     acts = np.concatenate(storage["acts"], axis=0)
     mask = np.concatenate(storage["mask"], axis=0)
     correct = np.array(storage["correct"], dtype=bool)
-    image_positions = np.concatenate(storage["image_positions"], axis=0)
+    image_token_mask = np.concatenate(storage["image_token_mask"], axis=0)
 
     out_path = os.path.join(output_dir, f"all_tensors_{chunk_idx}.npz")
     np.savez_compressed(
         out_path,
-        attns=attns,
+        attn_weights=attn_weights,
         acts=acts,
         correct=correct,
-        image_positions=image_positions,
+        image_token_mask=image_token_mask,
         mask=mask,
     )
     print(f"Saved chunk {chunk_idx} ({correct.size} samples) to {out_path}")
@@ -155,11 +155,11 @@ def main():
         return
 
     storage = {
-        "attns": [],  # [Sample, Layer, Head, Seq]
+        "attn_weights": [],  # [Sample, Layer, Head, Seq]
         "acts": [],  # [Sample, Layer + 1, Hidden Dim]
         "mask": [],  # [Sample, Seq]
         "correct": [],  # [Sample]
-        "image_positions": [],  # [Sample, Seq]
+        "image_token_mask": [],  # [Sample, Seq]
     }
     sample_count = 0
     chunk_idx = 0
@@ -167,7 +167,7 @@ def main():
 
     for idx, batch in enumerate(tqdm(loader, desc="Extracting", unit="batch")):
         # Extract diagnostic masks and labels
-        img_pos = batch.pop("image_positions")
+        img_pos = batch.pop("image_token_mask")
         labels = batch.pop("labels")
         # Move inputs to device
         batch = {k: v.to(args.device) for k, v in batch.items()}
@@ -192,7 +192,7 @@ def main():
         storage["acts"].append(np.swapaxes(act_np, 0, 1))
         storage["mask"].append(attn_mask)
         storage["correct"].extend(correct)
-        storage["image_positions"].append(img_pos.cpu().numpy())
+        storage["image_token_mask"].append(img_pos.cpu().numpy())
 
         sample_count += len(correct)
 
