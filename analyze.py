@@ -62,7 +62,7 @@ def visual_attention_map_analysis(
         attn_weights_sample, image_token_mask_sample, patch_boxes, image
     )
 
-    plot_attention_map(attention_maps, num_actual_layers, image, sample_idx)
+    plot_attention_map(attention_maps, num_actual_layers, image, sample_data)
 
 
 def analyze_attention_split(

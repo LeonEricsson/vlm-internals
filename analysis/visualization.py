@@ -183,8 +183,8 @@ def plot_attention_map(
 
     fig.canvas.mpl_connect("key_press_event", on_key_press)
 
-    suptitle_text = "Attention Visualization"
-    suptitle_text += f": Sample {sample_idx}"
+    question = sample["caption_options"][0]
+    suptitle_text = f"Caption: {question}"
     fig.suptitle(suptitle_text, fontsize=16, y=0.97)
 
     plt.show()
