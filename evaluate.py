@@ -1,3 +1,5 @@
+"""Simple evaluation script for VLM models on the VSR benchmark."""
+
 import argparse
 
 import torch
@@ -10,6 +12,8 @@ from model_utils import get_wrapper_collator
 
 
 def parse_args():
+    """Parse command line arguments for evaluation."""
+
     p = argparse.ArgumentParser(
         description="Evaluate VSR benchmark with Qwen VL True/False"
     )
@@ -30,6 +34,8 @@ def parse_args():
 
 
 def main():
+    """Evaluate a model on the chosen dataset and print metrics."""
+
     args = parse_args()
     device = torch.device(args.device)
 

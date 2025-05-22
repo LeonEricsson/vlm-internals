@@ -1,5 +1,9 @@
-"""
-Source: https://github.com/shiqichen17/AdaptVis/blob/main/dataset_zoo/aro_datasets.py
+"""Datasets for vision-language reasoning experiments.
+
+The implementations are lightly adapted from
+`AdaptVis <https://github.com/shiqichen17/AdaptVis/>`_.  Only a single dataset
+(:class:`VSR`) is provided here, but :func:`get_dataset` in ``data.__init__``
+can be extended to dispatch to additional datasets.
 """
 
 import pdb

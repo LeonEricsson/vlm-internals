@@ -1,3 +1,5 @@
+"""Helper utilities for loading and preprocessing extracted data."""
+
 import numpy as np
 from pathlib import Path
 from typing import Dict, List
