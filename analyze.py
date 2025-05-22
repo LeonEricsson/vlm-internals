@@ -1,7 +1,65 @@
 import os
 import argparse
-from analysis.utils import load_extractions
-from analysis.attention import compute_attention_ratios, plot_attention_ratios
+from analysis.utils import load_extractions, calculate_patch_information
+from analysis.attention import (
+    compute_attention_ratios,
+    plot_attention_ratios,
+    precompute_attention_map,
+)
+from analysis.visualization import plot_attention_map
+from data import get_dataset
+
+
+def visualize_attention_map(
+    input_dir: str,
+    sample_idx: int,
+    dataset_name: str,
+) -> None:
+    """
+    Visualize attention maps for a single sample across model layers.
+    Creates an interactive plot where you can scroll through layers to see how
+    attention to different image patches changes.
+
+    Args:
+        input_dir: Directory containing the NPZ extraction files
+        sample_idx: Index of the sample to visualize
+        dataset_name: Name of the dataset to use
+    """
+    dataset = get_dataset(dataset_name)  # Uses dummy if not overridden
+
+    print(f"Loading extractions from {input_dir}...")
+    data = load_extractions(input_dir, keys=["attn_weights", "image_token_mask"])
+
+    if sample_idx >= len(data["attn_weights"]) or sample_idx >= len(
+        data["image_token_mask"]
+    ):
+        print(
+            f"Error: sample_idx {sample_idx} is out of bounds for loaded extraction data arrays."
+        )
+        return
+
+    # Get attention weights for this sample. Assuming [Layers, Heads, Seq_relevant_for_source]
+    # The .mean(axis=1) in _precompute_attention_map would average over heads.
+    # If data["attn_weights"][sample_idx] is [Layers, Heads, Seq], this is fine.
+    attn_weights_sample = data["attn_weights"][sample_idx]
+    image_token_mask_sample = data["image_token_mask"][sample_idx]
+
+    sample_data = dataset[sample_idx]
+    image = sample_data["image_options"][0]
+
+    num_actual_layers = (
+        attn_weights_sample.shape[0] if attn_weights_sample.ndim > 0 else 0
+    )
+
+    patch_boxes = calculate_patch_information(image, input_dir)
+
+    attention_maps = precompute_attention_map(
+        attn_weights_sample, image_token_mask_sample, patch_boxes, image
+    )
+
+    plot_attention_map(
+        attention_maps, num_actual_layers, image, sample_idx, dataset_name
+    )
 
 
 def analyze_attention_split(
@@ -14,11 +72,11 @@ def analyze_attention_split(
     """
 
     print(f"Loading extractions from {input_dir}...")
-    data = load_extractions(input_dir, keys=["attns", "image_positions"])
+    data = load_extractions(input_dir, keys=["attn_weights", "image_token_mask"])
 
     print("Computing attention ratios...")
     image_attention, text_attention = compute_attention_ratios(
-        data["attns"], data["image_positions"]
+        data["attn_weights"], data["image_token_mask"]
     )
 
     print("Plotting attention distribution...")
@@ -45,11 +103,22 @@ def main():
         default="",
         help="Directory to save the analysis plots",
     )
-    args = parser.parse_args()
+    parser.add_argument(
+        "--sample_idx",
+        type=int,
+        default=0,
+        help="Index of sample to visualize attention maps for",
+    )
+    parser.add_argument(
+        "--dataset",
+        type=str,
+        default="VSR",
+        help="Dataset name as understood by get_dataset().",
+    )
 
-    # Call whatever analysis function you want
-    analyze_attention_split(args.input_dir)
-
+    # args = parser.parse_args()
+    # visualize_sample_attention(args.input_dir, args.sample_idx, args.dataset)
+    visualize_attention_map("extractions/Qwen_Qwen2.5-VL-3B-Instruct_VSR/", 1, "VSR")
     print("Analysis complete!")
 
 

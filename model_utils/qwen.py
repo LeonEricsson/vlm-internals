@@ -1,3 +1,4 @@
+import os
 import torch
 from transformers import AutoProcessor, Qwen2_5_VLForConditionalGeneration
 from qwen_vl_utils import process_vision_info
@@ -65,6 +66,10 @@ class Qwen2_5_VLWrapper:
         acts = outputs.hidden_states
 
         return {"attns": attns, "acts": acts, "logits": logits}
+
+    def save_model_processor(self, save_dir: str):
+        self.processor.save_pretrained(os.path.join(save_dir, "processor"))
+        self.model.config.to_json_file(os.path.join(save_dir, "model_config.json"))
 
 
 class Qwen2_5_DataCollator:

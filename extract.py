@@ -214,6 +214,8 @@ def main():
         # No chunking: save all in one file
         flush_storage(storage, out_base, 0)
 
+    wrapper.save_model_processor(out_base)
+
     elapsed = time.time() - start_time
     print(f"Extraction complete in {elapsed:.2f}s.")
 
