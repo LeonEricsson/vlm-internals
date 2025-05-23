@@ -217,7 +217,6 @@ def main():
             [a.detach().cpu().to(torch.float16).numpy() for a in out["attns"]],
             axis=0,
         )
-        attn_np = attn_np[:, :, :, -1, :]  # attention from last token to all positions
         act_np = np.stack(
             [h.detach().cpu().to(torch.float16).numpy() for h in out["acts"]],
             axis=0,
