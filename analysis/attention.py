@@ -50,7 +50,7 @@ def precompute_attention_map(attn_weights, image_token_mask, patch_boxes, image)
     Returns
     -------
     Dict[int, np.ndarray]
-        Mapping from layer index to ``[H, W]`` heatmaps normalised per layer.
+        Dictionary mapping from layer index to ``[H, W]`` heatmaps containing attention weights.
     """
     orig_h, orig_w = image.size[::-1]
     precomputed_maps = {}
@@ -59,38 +59,21 @@ def precompute_attention_map(attn_weights, image_token_mask, patch_boxes, image)
     for layer_idx in range(num_layers_in_weights):
         # Assuming attn_weights[layer_idx] is [Heads, Seq_Tokens_Attended_By_Source]
         layer_attn_scores_for_tokens = attn_weights[layer_idx].mean(axis=0)
-
         img_attn_scores = layer_attn_scores_for_tokens[image_token_mask]
-
-        img_attn_sum = img_attn_scores.sum()
-        if img_attn_sum > 1e-9:
-            img_attn_scores_normalized = img_attn_scores / img_attn_sum
-        else:
-            img_attn_scores_normalized = np.zeros_like(img_attn_scores)
-            # Print warning only for the first problematic layer to avoid spam
-            if not np.any(
-                [
-                    precomputed_maps[k].sum() > 1e-9
-                    for k in precomputed_maps
-                    if precomputed_maps[k].ndim > 0
-                ]
-            ):  # Crude check if other maps were also blank
-                print(
-                    f"Warning: Sum of attention for image tokens is zero/negligible for layer {layer_idx}. Map may appear blank."
-                )
 
         attn_map_2d = np.zeros((orig_h, orig_w), dtype=np.float32)
 
-        if len(img_attn_scores_normalized) != len(patch_boxes):
+        if len(img_attn_scores) != len(patch_boxes):
             print(
-                f"Warning: Layer {layer_idx}: Mismatch between number of attention scores ({len(img_attn_scores_normalized)}) "
+                f"Warning: Layer {layer_idx}: Mismatch between number of attention scores ({len(img_attn_scores)}) "
                 f"and patch boxes ({len(patch_boxes)}). This layer's map will be empty."
             )
-            precomputed_maps[layer_idx] = attn_map_2d  # Store empty map
+            precomputed_maps[layer_idx] = attn_map_2d
             continue
 
         for patch_idx, (x0, y0, x1, y1) in enumerate(patch_boxes):
-            attn_map_2d[y0:y1, x0:x1] = img_attn_scores_normalized[patch_idx]
+            attn_map_2d[y0:y1, x0:x1] = img_attn_scores[patch_idx]
 
         precomputed_maps[layer_idx] = attn_map_2d
+
     return precomputed_maps
