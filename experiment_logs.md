@@ -13,13 +13,13 @@ I was keen on performing the same analysis for newever models, because the paper
 
 I built most of the necessary tooling to extract and perform the analysis on the VSR benchmark dataset.
 
-It wasn't untill I started analyzing the results until I started questioning what I was doing. Can we really attribute attention scores in layers to the original symbol. Naturally, after thinking about it, I landed in this being quite unreasonable.
+It wasn't until I started analyzing the results that I started questioning what I was doing. Can we really attribute attention scores in layers to the original symbol. Naturally, after thinking about it, I landed in this being quite unreasonable. Honestly I thought this was a fairly well established line of thinking, by the middle layers, each sequence position encodes a high-dimensional bundle of features; the mapping between “position ↔ symbol” has already dissolved. Hence a large weight from position i to j says nothing about any single symbol at those locations.
 
 what we're doing here is blindly assuming that the attended channels actually carry the spatial features we are interested in. We are assuming that the spatial features are also directly passed from the image token into the final output token. This is wrong
 
 confirm whether the attended channels actually carry spatial features; in doing so, they inherit the long-standing pitfall of equating softmax weights with information flow. By pooling attention across heads and layers they reduce a rich, circuit-level mechanism to a single saliency heat-map, masking the head-specific routes that prior mechanistic-interpretability work has shown to mediate geometry reasoning.
 
-another problem is we are assuming that the image patch embeddings passed to us by the ViT, have not already entangled a bunch of spatial information between the patches.
+another problem is we are assuming that the image patch embeddings passed to us by the ViT, have not already entangled a bunch of spatial information between the patches. 
 
 #### Alternative ways to analyse attention:
 
