@@ -1,14 +1,19 @@
 # inspecting vlm internals
 
-This repository contains small-scale tooling for studying **vision-language models (VLMs)**. The focus is on mechanistic interpretability techniques. My personal agenda is an interest in VLM reasoning, spatial reasoning to be exact. I'd like to understand how and why VLMs may struggle with spatial reasoning, and the effect of performing spatial reasoning through text. However, extending to other domains, models, etc should be straightforward. The code is intentionally lightweight to support quick experiments.
+this repository contains small-scale tooling for studying language models—currently focused only on vision-language models. the repo is intentionally messy and research-oriented. it’s not meant to grow into a large project, but rather stay quick and dirty, scriptable, and easy to understand.
+
+my personal focus is on vlm reasoning, specifically spatial reasoning. i'm interested in understanding how and why vlms may struggle with spatial reasoning, and what effect performing such reasoning through text might have.
+
+extending the repo to support other domains, models, etc., should be straightforward. the code is intentionally lightweight to enable fast experimentation.
 
 ## Repository Overview
 
-- **`data/`** – Dataset helpers for downloading and preprocessing, currently only supports VSR.
-- **`model_utils/`** – Wrappers and collators for specific VLMs (currently Qwen 2.5). Add new wrappers here and register them in `get_wrapper_collator()`.
-- **`extract.py`** – Run a model on a dataset and save attention maps, hidden states and prediction metadata to compressed `.npz` files.
-- **`analyze.py`** – Utilities to inspect the saved tensors, including attention map visualisation and simple statistics.
-- **`evaluate.py`** – Basic accuracy evaluation of a model on the VSR dataset.
+- **`data/`** – everything dataset related, downloading, preprocessing etc.
+- **`model_utils/`** – wrappers and collators for specific VLMs (currently Qwen VL 2.5). Wrappers implement a forward pass wrapper for extracting internals, collators prepare batches for model specific input.
+- **`analysis/`** - helper functions for analyzing and visualizing extracted model internals.
+- **`extract.py`** – run a model on a dataset and save model internals to compressed `.npz` files.
+- **`analyze.py`** – entry point for utilities to inspect the extracted tensors,
+- **`evaluate.py`** – basic accuracy evaluation of a model on the VSR dataset.
 
 ## Setup
 
